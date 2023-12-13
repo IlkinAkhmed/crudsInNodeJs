@@ -1,104 +1,91 @@
 import express from "express";
-const app = express();
-import cors from "cors"
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import cors from "cors";
 
-app.use(cors())
+const app = express();
+
+app.use(cors());
 
 app.use(express.json());
 
-const PORT = 5000;
-let count = 6;
-let users = [
-  {
-    id: 1,
-    name: "Ilkin",
-    surname: "Akhmedov",
-  },
-  {
-    id: 2,
-    name: "Mammadtaghi",
-    surname: "Aliyev",
-  },
-  {
-    id: 3,
-    name: "Ali",
-    surname: "Ismayilzade",
-  },
-  {
-    id: 4,
-    name: "Ehmed",
-    surname: "Baghirov",
-  },
-  {
-    id: 5,
-    name: "Alpay",
-    surname: "Abdullayev",
-  },
-];
+dotenv.config();
 
-app.get("/", (req, res) => {
-  res.send(
-    "<h1>Home Page</h1> <p>IlkinAkhmed <a href='#'>click here</a> </p> "
-  );
-  console.log("isledi");
-});
+const { Schema } = mongoose;
 
-app.get("/users", (req, res) => {
-  res.send(users);
-});
+const categorySchema = new Schema(
+  {
+    description: { type: String, required: true },
+    name: { type: String, required: true }
+  },
+  { timestamps: true }
+);
 
-app.get("/users/:id", (req, res) => {
-  const { id } = req.params;
-  const item = users.find((x) => x.id == id);
-  res.send(item);
-});
+const Categories = mongoose.model("category", categorySchema);
 
-app.delete("/users/:id", (req, res) => {
-  const { id } = req.params;
-  const item = users.find((x) => x.id == id);
-  if (item) {
-    const filteredUser = users.filter((x) => x.id != id);
-    res.send(filteredUser);
+// get all users
+app.get("/categories", async (req, res) => {
+  try {
+    const data = await Categories.find({});
+    res.send(data);
+  } catch (error) {
+    res.status(500).json({ message: error });
   }
-  res.send(item);
 });
 
-app.post("/users", (req, res) => {
-  const newUser = {
-    id: count++,
-    name: req.body.name,
-    surname: req.body.surname,
-  };
-  users.push(newUser);
-  res.send(users);
-});
-
-app.put("/users/:id", (req, res) => {
+// get user by id
+app.get("/categories/:id", async (req, res) => {
   const { id } = req.params;
-  const item = users.find((x) => x.id == id);
-  users = users.filter((x) => x.id != id);
-  if (item) {
-    const updatedUser = {
-      id: +id,
-      name: req.body.name,
-      surname: req.body.surname,
-    };
-    users.push(updatedUser);
+  try {
+    const category = await Categories.findById(id);
+    res.send(category);
+  } catch (error) {
+    res.status(500).json({ message: error });
   }
-  users.sort((a, b) => a.id - b.id);
-  res.send(users);
 });
 
-// app.put('/users/:id',(req,res)=>{
-//     const {id} = req.params
-//     const index = users.findIndex(x=>x.id==id)
-//     users[index]={
-//         id:id,
-//         ...req.body
-//     }
-//     res.send(users)
-// })
+// delete user
+app.delete("/categories/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    await Categories.findByIdAndDelete(id);
+    res.status(200).json({ message: "category deleted" });
+  } catch (error) {
+    res.status(500).json({ message: error });
+  }
+});
 
+// post user
+app.post("/categories", async (req, res) => {
+  try {
+    await Categories.create(req.body);
+    res.status(200).json({ message: "category created" });
+  } catch (error) {
+    res.status(500).json({ message: error });
+  }
+});
+
+// update user
+
+app.put("/categories/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    await Categories.findByIdAndUpdate(id, req.body);
+    res.status(200).json({ message: "category updated" });
+  } catch (error) {
+    res.status(500).json({ message: error });
+  }
+});
+
+const url = process.env.CONNECTION_URL.replace(
+  "<password>",
+  process.env.PASSWORD
+);
+mongoose.connect(url).catch((err) => console.log("Db not connect" + err));
+
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log("server 5000 portunda isleyir");
 });
+
+// https://github.com/hnuruzada/StaticUserNodeWithoutMongo/
